@@ -19,7 +19,8 @@
   <!-- Mobile Top Bar -->
   <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-md">
     <div class="flex items-center space-x-2.5">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 via-rose-600 to-emerald-600 flex items-center justify-center font-bold text-white text-sm shadow">
+      <!-- Hidden 5-click backdoor for teacher only -->
+      <div onclick="secretTeacherClick()" class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 via-rose-600 to-emerald-600 flex items-center justify-center font-bold text-white text-sm shadow cursor-pointer select-none">
         族
       </div>
       <div>
@@ -27,15 +28,9 @@
         <p class="text-[11px] text-slate-400">研習互動作答 · 匿名加入</p>
       </div>
     </div>
-    <div class="flex items-center space-x-2">
-      <!-- Quick Switch to Presenter for Teachers -->
-      <a href="./presenter.html" class="px-2.5 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-[11px] font-semibold transition flex items-center gap-1 shadow-sm">
-        <span>🖥️</span> 講師控制台
-      </a>
-      <div class="hidden sm:flex items-center space-x-1.5 pl-1">
-        <span id="conn-indicator" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-        <span id="conn-status" class="text-[11px] text-amber-300 font-medium">連線中</span>
-      </div>
+    <div class="flex items-center space-x-1.5">
+      <span id="conn-indicator" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+      <span id="conn-status" class="text-[11px] text-amber-300 font-medium">連線中</span>
     </div>
   </header>
 
@@ -105,17 +100,122 @@
   </main>
 
   <!-- Mobile Footer -->
-  <footer class="bg-slate-950 border-t border-slate-900 px-4 py-3 text-center text-xs text-slate-500 space-y-1">
-    <div>科技運用與族語文化教材設計 · 即時問答系統</div>
-    <div class="pt-1">
-      <a href="./presenter.html" class="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-medium underline text-xs">
-        👉 若您是講師，請點此進入【講師投影幕主控台 (presenter.html)】
-      </a>
-    </div>
+  <footer class="bg-slate-950 border-t border-slate-900 px-4 py-3 text-center text-xs text-slate-500">
+    科技運用與族語文化教材設計 · 研習即時互動問答
   </footer>
 
-  <script type="module">
-    import { QUESTIONS_DATA } from './questions.js';
+  <script>
+    // 8 Questions Data directly embedded for 100% mobile compatibility
+    const QUESTIONS_DATA = [
+      {
+        id: 1,
+        category: "心情破冰",
+        title: "了解老師：您今日前來參加研習的心情如何？",
+        subtitle: "請選出最貼近您當下心情的狀態（可匿名表達真實感受）",
+        type: "single",
+        options: [
+          { key: "A", label: "⚡ 滿懷期待，想知道新科技能幫上什麼忙" },
+          { key: "B", label: "🌱 謙虛好奇，想來吸收各族老師的教學靈感" },
+          { key: "C", label: "💪 躍躍欲試，迫不及待想嘗試設計自編教案" },
+          { key: "D", label: "☕ 輕鬆參與，抱著觀摩與交流的心態前來" },
+          { key: "E", label: "😴 稍有疲倦，但很希望能獲得省時提效的秘訣" }
+        ]
+      },
+      {
+        id: 2,
+        category: "教學身分",
+        title: "請問您的教學或工作身分主要是哪一類？",
+        subtitle: "協助講師因材施教，調整稍後案例分享與實作引導的切入點",
+        type: "single",
+        options: [
+          { key: "A", label: "專職族語老師 (專職 / 專任教學人員)" },
+          { key: "B", label: "族語教學支援工作人員 (認證合格支援人員)" },
+          { key: "C", label: "一般學校教師 / 導師 / 學科老師 (推動本土語教育)" },
+          { key: "D", label: "教育行政人員 / 族文推廣員 / 輔導員" },
+          { key: "E", label: "非教學人員 (文化工作夥伴 / 研究生 / 社群自學者)" }
+        ]
+      },
+      {
+        id: 3,
+        category: "教案設計",
+        title: "請問您過去是否有設計「教學活動教案」的經驗？",
+        subtitle: "包含課堂教學流程、學習目標設定、素養導向評量規劃等",
+        type: "single",
+        options: [
+          { key: "A", label: "經常設計，教案架構駕輕就熟 (5年以上經驗)" },
+          { key: "B", label: "偶爾設計，配合學期、訪視或教學競賽撰寫" },
+          { key: "C", label: "較少設計，多數參考既有教案範本修改" },
+          { key: "D", label: "完全沒有經驗，想從零開始了解" }
+        ]
+      },
+      {
+        id: 4,
+        category: "教材製作",
+        title: "請問您是否有設計自製「教學材料/教具」的經驗？",
+        subtitle: "例如：族語字卡、文化繪本、情境會話單、數位遊戲教材等",
+        type: "single",
+        options: [
+          { key: "A", label: "經常自製，常為學生量身打造客製教材與學習單" },
+          { key: "B", label: "以官方既有教材為主，偶爾自編小遊戲或補充講義" },
+          { key: "C", label: "很想自製，但苦於缺少插圖素材、美編或排版能力" },
+          { key: "D", label: "未曾自製過教材" }
+        ]
+      },
+      {
+        id: 5,
+        category: "信心評估",
+        title: "您目前對於自己設計教案與教材的信心程度？",
+        subtitle: "請評估您目前的掌握度與成就感 (1星: 感到苦手 ～ 5星: 游刃有餘)",
+        type: "rating",
+        options: [
+          { key: "1", label: "★ 感到苦手，耗費大量心力且常卡關" },
+          { key: "2", label: "★★ 還算應付得來，但常缺乏靈感或素材" },
+          { key: "3", label: "★★★ 普通，按部就班能如期完成" },
+          { key: "4", label: "★★★★ 蠻有信心，有自己的教學風格與素材庫" },
+          { key: "5", label: "★★★★★ 信心滿滿，非常享受自編自導的教學過程" }
+        ]
+      },
+      {
+        id: 6,
+        category: "科技經驗",
+        title: "請問您過去是否使用過生成式 AI 工具？",
+        subtitle: "例如：ChatGPT、Gemini、Claude、Copilot、Midjourney 等",
+        type: "single",
+        options: [
+          { key: "A", label: "經常使用，已融入日常生活或備課工作中" },
+          { key: "B", label: "偶爾嘗試過，玩過聊天問答或寫過簡單文章" },
+          { key: "C", label: "有聽說過，但還沒有實際動手操作過" },
+          { key: "D", label: "完全沒有接觸過，今天是第一次接觸" }
+        ]
+      },
+      {
+        id: 7,
+        category: "族語應用",
+        title: "您是否曾嘗試或會使用 AI 來設計「族語教案與教材」？",
+        subtitle: "探討 AI 科技與本土少數語言教學結合的真實挑戰與機會",
+        type: "single",
+        options: [
+          { key: "A", label: "已經在用！會請 AI 發想文化情境或分級對話練習" },
+          { key: "B", label: "想用，但擔心 AI 族語詞彙不準確或產生文化幻覺" },
+          { key: "C", label: "很想學，但不知道該怎麼對 AI 說出合適的族語提示詞" },
+          { key: "D", label: "不太會用，對科技與少數語言的結合抱持觀望" }
+        ]
+      },
+      {
+        id: 8,
+        category: "期待展望",
+        title: "您對於「運用科技與 AI」輔助族語教材設計的信心與期待？",
+        subtitle: "請評估您對科技賦能族語傳承的未來展望 (1星: 疑慮觀望 ～ 5星: 高度期待)",
+        type: "rating",
+        options: [
+          { key: "1", label: "★ 疑慮大於幫助，持謹慎保留態度" },
+          { key: "2", label: "★★ 稍有擔憂，但願意保持開放了解" },
+          { key: "3", label: "★★★ 中立，關鍵在於實際工具是否接地氣" },
+          { key: "4", label: "★★★★ 蠻期待，希望能實質縮短繁瑣備課時間" },
+          { key: "5", label: "★★★★★ 高度期待！這是族語數位化與年輕化的重要契機" }
+        ]
+      }
+    ];
 
     // State
     let currentQIndex = 0;
@@ -133,9 +233,29 @@
       "拉阿魯哇貝神友", "邵族白鹿夥伴", "噶瑪蘭海風夥伴", "賽德克彩虹友"
     ];
 
-    let myNickname = localStorage.getItem('indigenous_poll_user') || 
-      `${TRIBAL_NAMES[Math.floor(Math.random() * TRIBAL_NAMES.length)]} #${Math.floor(Math.random() * 89 + 10)}`;
-    localStorage.setItem('indigenous_poll_user', myNickname);
+    let myNickname = `${TRIBAL_NAMES[Math.floor(Math.random() * TRIBAL_NAMES.length)]} #${Math.floor(Math.random() * 89 + 10)}`;
+    try {
+      const saved = localStorage.getItem('indigenous_poll_user');
+      if (saved) {
+        myNickname = saved;
+      } else {
+        localStorage.setItem('indigenous_poll_user', myNickname);
+      }
+    } catch (e) {
+      console.warn('localStorage access denied/private mode:', e);
+    }
+
+    // Hidden Teacher Entry (Click the tribal logo 5 times)
+    let secretClicks = 0;
+    let secretTimer = null;
+    window.secretTeacherClick = function() {
+      secretClicks++;
+      clearTimeout(secretTimer);
+      secretTimer = setTimeout(() => { secretClicks = 0; }, 2000);
+      if (secretClicks >= 5) {
+        window.location.href = './presenter.html';
+      }
+    };
 
     // Initial Setup
     document.addEventListener('DOMContentLoaded', () => {
