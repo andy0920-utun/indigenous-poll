@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>講師投影幕主控台 - 科技運用與族語文化教材設計</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- QRCode.js and PeerJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --clay: #c04a2d;
+      --gold: #d97706;
+      --forest: #0d5f4c;
+    }
+    @keyframes pulse-gentle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    .live-pulse {
+      animation: pulse-gentle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none antialiased">
+
+  <!-- Top Presenter Bar -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-3 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 via-rose-600 to-emerald-600 flex items-center justify-center font-black text-white text-lg shadow-md">
+        族
+      </div>
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="font-extrabold text-lg text-white tracking-wide">科技運用與族語文化教材設計</h1>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 投影幕主控台
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">Slido 式即時互動學情調查 · 實時統計與智能話術引導</p>
+      </div>
+    </div>
+
+    <!-- Active Connected Audience Counter -->
+    <div class="flex items-center space-x-4">
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-1.5 flex items-center gap-2">
+        <span class="text-xs text-slate-400">在線學員數：</span>
+        <span id="connected-count" class="font-mono font-bold text-amber-400 text-base">0</span>
+        <span class="text-xs text-slate-400">人</span>
+      </div>
+
+      <!-- Quick Mock / Test Buttons -->
+      <a href="./index.html" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1">
+        📱 開啟學員端測試
+      </a>
+
+      <button onclick="simulateMockAudience(5)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center gap-1">
+        🎲 模擬 5 人填答
+      </button>
+
+      <button onclick="resetCurrentVotes()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 transition">
+        重設本題
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Projection Body -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-5">
+    
+    <!-- Top Action Controls & Question Header -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2.5 mb-1.5">
+          <span class="text-xs px-3 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase tracking-wider">
+            第 <span id="q-num">1</span> 題 / 共 8 題
+          </span>
+          <span id="q-category" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+            破冰調查
+          </span>
+          <span id="lock-badge" class="text-xs px-2.5 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-medium flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 開放作答中
+          </span>
+        </div>
+        <h2 id="q-title" class="text-2xl md:text-3xl font-extrabold text-white tracking-tight mt-1">
+          題目載入中...
+        </h2>
+        <p id="q-subtitle" class="text-sm text-slate-400 mt-1">
+          請各位老師拿出手機掃描右方 QR Code 進行作答
+        </p>
+      </div>
+
+      <!-- Presenter Next / Previous Controllers -->
+      <div class="flex items-center gap-3">
+        <button id="btn-prev" onclick="goToPrevQuestion()" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center gap-2">
+          ◀ 上一題
+        </button>
+
+        <button id="btn-lock" onclick="toggleLockState()" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 transition flex items-center gap-2">
+          <span id="lock-icon">🔓</span> <span id="lock-label">鎖定作答</span>
+        </button>
+
+        <button id="btn-next" onclick="goToNextQuestion()" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white shadow-lg shadow-amber-600/30 transition flex items-center gap-2">
+          <span>下一題</span> ▶
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Stage: Live Result Bars (Left 8 Cols) + Big QR Code (Right 4 Cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-stretch">
+      
+      <!-- Left: Dynamic Live Response Distribution -->
+      <div class="lg:col-span-8 flex flex-col gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              即時統計分佈 (Live Results)
+            </h3>
+            <div class="text-sm text-slate-300">
+              已收件數：<span id="answered-count" class="text-2xl font-black text-amber-400">0</span> 票
+            </div>
+          </div>
+
+          <!-- Dynamic Bars -->
+          <div id="bars-list" class="py-5 flex-1 flex flex-col justify-center space-y-4">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Trend Bar -->
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between text-xs md:text-sm text-slate-400">
+            <span>全場核心傾向：<strong id="trend-label" class="text-amber-300 font-semibold">等待作答中...</strong></span>
+            <span class="text-slate-500 font-mono">支援鍵盤快捷鍵：[←][→]切換，[空白鍵]鎖定</span>
+          </div>
+        </div>
+
+        <!-- AI Speaker Coach / Speaking Advice -->
+        <div class="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-amber-950/40 border border-emerald-500/30 rounded-2xl p-5 shadow-lg">
+          <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1.5">
+            <span class="text-lg">💡</span> 講師即時解讀與接話話術指引 (Speaker Coach)
+          </div>
+          <p id="speaker-coach-text" class="text-xs md:text-sm text-slate-200 leading-relaxed font-normal">
+            載入中...
+          </p>
+        </div>
+      </div>
+
+      <!-- Right: Big QR Code & Direct Join Info -->
+      <div class="lg:col-span-4 flex flex-col gap-4">
+        
+        <!-- Big QR Code Box -->
+        <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 text-center shadow-xl flex flex-col items-center justify-center">
+          <div class="text-sm font-extrabold text-amber-400 tracking-wider mb-1 flex items-center gap-1.5">
+            <span>📱</span> 手機掃描立即加入
+          </div>
+          <p class="text-xs text-slate-400 mb-4">
+            免下載 App · 匿名加入 · 同步作答
+          </p>
+
+          <!-- QR Code Canvas Container -->
+          <div class="p-3.5 bg-white rounded-2xl shadow-2xl border-4 border-amber-500/30 flex items-center justify-center w-52 h-52">
+            <div id="qrcode-box" class="w-full h-full flex items-center justify-center"></div>
+          </div>
+
+          <div class="mt-4 w-full bg-slate-800/90 rounded-xl p-2.5 text-center border border-slate-700">
+            <span class="text-[11px] text-slate-400 block mb-0.5">或以手機瀏覽器開啟網址：</span>
+            <div id="join-url-box" class="text-xs font-mono text-amber-300 font-bold select-all break-all">
+              載入網址中...
+            </div>
+          </div>
+
+          <div class="mt-3 flex items-center justify-between w-full text-xs text-slate-400 px-1">
+            <span>房間號：<strong id="room-pin-display" class="text-slate-200 font-mono font-bold">LANG-2026</strong></span>
+            <span class="text-emerald-400">● 匿名安全防護</span>
+          </div>
+        </div>
+
+        <!-- Question Fast-jump Matrix -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md">
+          <div class="text-xs text-slate-400 font-semibold mb-2.5 flex items-center justify-between">
+            <span>快速切換題號：</span>
+            <span class="text-slate-500 font-mono">1 ~ 8 題</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2" id="nav-dots-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Export CSV Button -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 flex items-center justify-between">
+          <span class="text-xs text-slate-400">研習會紀錄留存：</span>
+          <button onclick="downloadCSVReport()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition flex items-center gap-1.5">
+            📥 下載統計 CSV
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { QUESTIONS_DATA, SEMINAR_TOPIC } from './questions.js';
+
+    // State - Generate Unique Room PIN per session to prevent PeerJS ID conflicts
+    const urlParams = new URLSearchParams(window.location.search);
+    let ROOM_PIN = urlParams.get('room') || sessionStorage.getItem('indigenous_room_pin');
+    if (!ROOM_PIN) {
+      ROOM_PIN = "LANG-" + Math.floor(1000 + Math.random() * 9000);
+      sessionStorage.setItem('indigenous_room_pin', ROOM_PIN);
+    }
+    let currentQuestionIndex = 0;
+    let isLocked = false;
+    let connectedPeers = new Set();
+    let votesDatabase = {}; // { questionId: { optionKey: count } }
+    let userVotedMap = {}; // { questionId: { userId: optionKey } }
+
+    // Init votesDatabase
+    QUESTIONS_DATA.forEach(q => {
+      votesDatabase[q.id] = {};
+      userVotedMap[q.id] = {};
+      q.options.forEach(opt => {
+        votesDatabase[q.id][opt.key] = 0;
+      });
+    });
+
+    let broadcastChannel = null;
+    let peer = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initQR();
+      setupBroadcastChannel();
+      setupWebRTCHost();
+      renderPresenterScreen();
+      renderNavigationDots();
+      setupKeyboardShortcuts();
+    });
+
+    // Initialize QR Code
+    function initQR() {
+      // Determine joining URL
+      let audienceUrl = window.location.href.replace('presenter.html', 'index.html');
+      if (!audienceUrl.includes('index.html')) {
+        audienceUrl = window.location.origin + window.location.pathname.replace(/\/([^\/]*)$/, '/index.html');
+      }
+      audienceUrl += (audienceUrl.includes('?') ? '&' : '?') + `room=${ROOM_PIN}`;
+
+      document.getElementById('join-url-box').textContent = audienceUrl;
+      document.getElementById('room-pin-display').textContent = ROOM_PIN;
+
+      const qrContainer = document.getElementById('qrcode-box');
+      qrContainer.innerHTML = '';
+      try {
+        new QRCode(qrContainer, {
+          text: audienceUrl,
+          width: 180,
+          height: 180,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (err) {
+        console.warn('QRCode library not ready or error:', err);
+      }
+    }
+
+    // BroadcastChannel for same-origin tabs
+    function setupBroadcastChannel() {
+      try {
+        broadcastChannel = new BroadcastChannel('indigenous_poll_sync');
+        broadcastChannel.onmessage = (event) => {
+          handleIncomingAudienceMessage(event.data);
+        };
+      } catch (e) {
+        console.log('BroadcastChannel not supported', e);
+      }
+    }
+
+    // WebRTC Host using PeerJS
+    function setupWebRTCHost() {
+      try {
+        peer = new Peer(`host-${ROOM_PIN}`);
+        
+        peer.on('open', (id) => {
+          console.log('Presenter Peer Host opened:', id);
+        });
+
+        peer.on('connection', (conn) => {
+          connectedPeers.add(conn);
+          updateConnectedCount();
+
+          // Send current state to newly joined audience
+          conn.on('open', () => {
+            conn.send({
+              type: 'CHANGE_QUESTION',
+              index: currentQuestionIndex,
+              isLocked: isLocked
+            });
+          });
+
+          conn.on('data', (data) => {
+            handleIncomingAudienceMessage(data);
+          });
+
+          conn.on('close', () => {
+            connectedPeers.delete(conn);
+            updateConnectedCount();
+          });
+        });
+
+        peer.on('error', (err) => {
+          console.log('Peer Host Note:', err);
+          if (err.type === 'unavailable-id') {
+            ROOM_PIN = "LANG-" + Math.floor(1000 + Math.random() * 9000);
+            sessionStorage.setItem('indigenous_room_pin', ROOM_PIN);
+            initQR();
+            setupWebRTCHost();
+          }
+        });
+      } catch (e) {
+        console.log('PeerJS fallback', e);
+      }
+    }
+
+    function updateConnectedCount() {
+      document.getElementById('connected-count').textContent = connectedPeers.size;
+    }
+
+    // Broadcast question state to all mobile peers
+    function broadcastState(type) {
+      const payload = {
+        type: type,
+        index: currentQuestionIndex,
+        isLocked: isLocked
+      };
+
+      // BroadcastChannel
+      if (broadcastChannel) {
+        broadcastChannel.postMessage(payload);
+      }
+
+      // WebRTC Peers
+      connectedPeers.forEach(conn => {
+        if (conn && conn.open) {
+          conn.send(payload);
+        }
+      });
+    }
+
+    // Handle incoming votes
+    function handleIncomingAudienceMessage(data) {
+      if (!data) return;
+
+      if (data.type === 'AUDIENCE_JOIN') {
+        const countEl = document.getElementById('connected-count');
+        countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+        // Reply with current question
+        broadcastState('CHANGE_QUESTION');
+        return;
+      }
+
+      if (data.type === 'SUBMIT_VOTE') {
+        if (isLocked) return;
+
+        const { questionId, optionKey, nickname } = data;
+        const userKey = nickname || 'anonymous';
+
+        // Check if user already voted on this question
+        const previousVote = userVotedMap[questionId][userKey];
+        if (previousVote) {
+          votesDatabase[questionId][previousVote] = Math.max(0, votesDatabase[questionId][previousVote] - 1);
+        }
+
+        userVotedMap[questionId][userKey] = optionKey;
+        votesDatabase[questionId][optionKey] = (votesDatabase[questionId][optionKey] || 0) + 1;
+
+        renderPresenterScreen();
+      }
+    }
+
+    // Render Current Presenter Screen
+    function renderPresenterScreen() {
+      const q = QUESTIONS_DATA[currentQuestionIndex];
+      if (!q) return;
+
+      document.getElementById('q-num').textContent = q.id;
+      document.getElementById('q-category').textContent = q.category;
+      document.getElementById('q-title').textContent = q.title;
+      document.getElementById('q-subtitle').textContent = q.subtitle;
+      document.getElementById('speaker-coach-text').textContent = q.speakerCoach;
+
+      // Update Lock Badge
+      const lockBadge = document.getElementById('lock-badge');
+      const lockLabel = document.getElementById('lock-label');
+      const lockIcon = document.getElementById('lock-icon');
+
+      if (isLocked) {
+        lockBadge.className = "text-xs px-2.5 py-1 rounded bg-rose-950 text-rose-400 border border-rose-800 font-medium flex items-center gap-1.5";
+        lockBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> 已鎖定作答`;
+        lockIcon.textContent = "🔒";
+        lockLabel.textContent = "解除鎖定";
+      } else {
+        lockBadge.className = "text-xs px-2.5 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-medium flex items-center gap-1.5";
+        lockBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 開放作答中`;
+        lockIcon.textContent = "🔓";
+        lockLabel.textContent = "鎖定作答";
+      }
+
+      // Calculate Total Votes
+      const currentVotes = votesDatabase[q.id];
+      const totalAnswered = Object.values(currentVotes).reduce((sum, v) => sum + v, 0);
+      document.getElementById('answered-count').textContent = totalAnswered;
+
+      // Render Dynamic Bars
+      const barsContainer = document.getElementById('bars-list');
+      barsContainer.innerHTML = '';
+
+      const colorPalette = [
+        "from-amber-600 to-amber-500",
+        "from-rose-600 to-rose-500",
+        "from-emerald-600 to-emerald-500",
+        "from-sky-600 to-sky-500",
+        "from-purple-600 to-purple-500"
+      ];
+
+      let highestOpt = q.options[0];
+      let highestCount = -1;
+
+      q.options.forEach((opt, idx) => {
+        const count = currentVotes[opt.key] || 0;
+        const pct = totalAnswered > 0 ? Math.round((count / totalAnswered) * 100) : 0;
+        const color = colorPalette[idx % colorPalette.length];
+
+        if (count > highestCount) {
+          highestCount = count;
+          highestOpt = opt;
+        }
+
+        const row = document.createElement('div');
+        row.className = "space-y-1.5";
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs md:text-sm text-slate-200">
+            <span class="font-medium flex items-center gap-2 truncate max-w-[80%]">
+              <span class="w-6 h-6 rounded-md bg-slate-800 text-slate-200 flex items-center justify-center font-bold text-xs border border-slate-700">${opt.key}</span>
+              <span class="truncate">${opt.label}</span>
+            </span>
+            <span class="font-mono font-bold text-amber-300">${count} 票 (${pct}%)</span>
+          </div>
+          <div class="w-full bg-slate-950 rounded-full h-4 p-0.5 border border-slate-800 overflow-hidden shadow-inner">
+            <div class="h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500 ease-out" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        barsContainer.appendChild(row);
+      });
+
+      // Trend Text
+      const trendEl = document.getElementById('trend-label');
+      if (totalAnswered === 0) {
+        trendEl.textContent = "等待學員掃碼填答中...";
+      } else if (q.type === 'rating') {
+        const sumRating = q.options.reduce((sum, opt) => sum + (parseInt(opt.key) * (currentVotes[opt.key] || 0)), 0);
+        const avg = (sumRating / totalAnswered).toFixed(1);
+        trendEl.innerHTML = `平均評分 <span class="text-amber-400 font-bold">${avg} ★</span> (共 ${totalAnswered} 人作答)`;
+      } else {
+        const pct = Math.round((highestCount / totalAnswered) * 100);
+        trendEl.innerHTML = `<span class="text-amber-400 font-bold">${highestOpt.label}</span> (${pct}%)`;
+      }
+
+      // Prev/Next Button state
+      document.getElementById('btn-prev').disabled = (currentQuestionIndex === 0);
+      document.getElementById('btn-next').disabled = (currentQuestionIndex === QUESTIONS_DATA.length - 1);
+
+      updateNavigationDots();
+    }
+
+    // Question Navigation
+    window.goToNextQuestion = function() {
+      if (currentQuestionIndex < QUESTIONS_DATA.length - 1) {
+        currentQuestionIndex++;
+        renderPresenterScreen();
+        broadcastState('CHANGE_QUESTION');
+      }
+    };
+
+    window.goToPrevQuestion = function() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderPresenterScreen();
+        broadcastState('CHANGE_QUESTION');
+      }
+    };
+
+    window.jumpToQuestion = function(idx) {
+      currentQuestionIndex = idx;
+      renderPresenterScreen();
+      broadcastState('CHANGE_QUESTION');
+    };
+
+    window.toggleLockState = function() {
+      isLocked = !isLocked;
+      renderPresenterScreen();
+      broadcastState('SET_LOCK');
+    };
+
+    // Navigation Dots
+    function renderNavigationDots() {
+      const container = document.getElementById('nav-dots-grid');
+      container.innerHTML = '';
+      QUESTIONS_DATA.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.id = `nav-btn-${idx}`;
+        btn.className = `py-2 rounded-xl text-xs font-bold transition ${
+          idx === currentQuestionIndex ? 'bg-amber-600 text-white shadow' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+        }`;
+        btn.textContent = `Q${q.id}`;
+        btn.onclick = () => jumpToQuestion(idx);
+        container.appendChild(btn);
+      });
+    }
+
+    function updateNavigationDots() {
+      QUESTIONS_DATA.forEach((_, idx) => {
+        const btn = document.getElementById(`nav-btn-${idx}`);
+        if (btn) {
+          if (idx === currentQuestionIndex) {
+            btn.className = 'py-2 rounded-xl text-xs font-bold bg-amber-600 text-white shadow';
+          } else {
+            btn.className = 'py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-400 hover:bg-slate-700';
+          }
+        }
+      });
+    }
+
+    // Keyboard Shortcuts
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+          goToNextQuestion();
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          goToPrevQuestion();
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          toggleLockState();
+        }
+      });
+    }
+
+    // Mock Audience for rehearsal
+    window.simulateMockAudience = function(count) {
+      const q = QUESTIONS_DATA[currentQuestionIndex];
+      for (let i = 0; i < count; i++) {
+        const randomOpt = q.options[Math.floor(Math.random() * q.options.length)];
+        votesDatabase[q.id][randomOpt.key] = (votesDatabase[q.id][randomOpt.key] || 0) + 1;
+      }
+      renderPresenterScreen();
+    };
+
+    window.resetCurrentVotes = function() {
+      const q = QUESTIONS_DATA[currentQuestionIndex];
+      if (confirm(`確定要將第 ${q.id} 題的作答數據重置為 0 嗎？`)) {
+        q.options.forEach(opt => {
+          votesDatabase[q.id][opt.key] = 0;
+        });
+        userVotedMap[q.id] = {};
+        renderPresenterScreen();
+      }
+    };
+
+    // Download CSV Report
+    window.downloadCSVReport = function() {
+      let csv = "\uFEFF"; // UTF-8 BOM
+      csv += "題號,類別,題目,選項代碼,選項描述,得票數,佔比\n";
+
+      QUESTIONS_DATA.forEach(q => {
+        const total = Object.values(votesDatabase[q.id]).reduce((s, v) => s + v, 0);
+        q.options.forEach(opt => {
+          const count = votesDatabase[q.id][opt.key] || 0;
+          const pct = total > 0 ? (count / total * 100).toFixed(1) + "%" : "0%";
+          const title = `"${q.title.replace(/"/g, '""')}"`;
+          const desc = `"${opt.label.replace(/"/g, '""')}"`;
+          csv += `${q.id},"${q.category}",${title},"${opt.key}",${desc},${count},${pct}\n`;
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `研習互動問答統計_${SEMINAR_TOPIC}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>研習即時互動問答 - 科技運用與族語文化教材設計</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS for zero-server real-time WebRTC communication -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    body {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+  <!-- Mobile Top Bar -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 via-rose-600 to-emerald-600 flex items-center justify-center font-bold text-white text-sm shadow">
+        族
+      </div>
+      <div>
+        <h1 class="text-xs font-bold text-white tracking-wide">科技運用與族語文化教材設計</h1>
+        <p class="text-[11px] text-slate-400">研習互動作答 · 匿名加入</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <!-- Quick Switch to Presenter for Teachers -->
+      <a href="./presenter.html" class="px-2.5 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-[11px] font-semibold transition flex items-center gap-1 shadow-sm">
+        <span>🖥️</span> 講師控制台
+      </a>
+      <div class="hidden sm:flex items-center space-x-1.5 pl-1">
+        <span id="conn-indicator" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="conn-status" class="text-[11px] text-amber-300 font-medium">連線中</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Nickname Bar -->
+  <div class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-1.5 flex items-center justify-between text-xs text-slate-300">
+    <span class="flex items-center gap-1.5">
+      <span>👤 我的代號：</span>
+      <strong id="user-nickname-display" class="text-amber-400">載入中...</strong>
+    </span>
+    <button onclick="changeNickname()" class="text-[11px] text-slate-400 hover:text-white underline">
+      更換
+    </button>
+  </div>
+
+  <!-- Main Question Content Area -->
+  <main class="flex-1 p-4 max-w-md mx-auto w-full flex flex-col justify-start">
+
+    <!-- Active Question Card -->
+    <div id="card-active" class="flex-1 flex flex-col">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold tracking-wider">
+          第 <span id="q-index-display">1</span> 題 / 共 8 題
+        </span>
+        <span id="q-category-display" class="text-xs text-slate-400">
+          破冰調查
+        </span>
+      </div>
+
+      <h2 id="q-title-display" class="text-base md:text-lg font-bold text-white leading-snug mb-1">
+        請稍候，正在同步講師投影幕題目...
+      </h2>
+      <p id="q-desc-display" class="text-xs text-slate-400 mb-4">
+        請在下方點選最符合您的選項：
+      </p>
+
+      <!-- Options Container -->
+      <div id="options-list" class="space-y-2.5 flex-1 flex flex-col justify-start">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Feedback Banner -->
+      <div id="feedback-alert" class="mt-4 p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center hidden">
+        <div class="text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5">
+          <span>✓</span> 您的回答已成功傳送至講師投影幕！
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1">
+          可抬頭觀看大螢幕即時統計分佈，或在此更換答案。
+        </p>
+      </div>
+    </div>
+
+    <!-- Question Locked / Waiting State -->
+    <div id="card-locked" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-900/60 rounded-2xl border border-slate-800">
+      <div class="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-3xl mb-4">
+        ⏳
+      </div>
+      <h3 class="text-base font-bold text-white mb-1.5">本題作答已鎖定</h3>
+      <p class="text-xs text-slate-400 leading-relaxed mb-4">
+        講師正在大螢幕進行數據分析與重點說明。<br>請抬頭觀看投影幕，稍後將由講師切換至下一題！
+      </p>
+      <div class="w-full bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left text-xs text-slate-300">
+        <span class="text-amber-400 font-bold block mb-1">💡 研習小提醒：</span>
+        族語教材自編的核心在於「文化情境」與「語言準確度」，科技是助攻的好夥伴！
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Mobile Footer -->
+  <footer class="bg-slate-950 border-t border-slate-900 px-4 py-3 text-center text-xs text-slate-500 space-y-1">
+    <div>科技運用與族語文化教材設計 · 即時問答系統</div>
+    <div class="pt-1">
+      <a href="./presenter.html" class="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-medium underline text-xs">
+        👉 若您是講師，請點此進入【講師投影幕主控台 (presenter.html)】
+      </a>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { QUESTIONS_DATA } from './questions.js';
+
+    // State
+    let currentQIndex = 0;
+    let isLocked = false;
+    let myAnswer = null;
+    let peer = null;
+    let conn = null;
+    let broadcastChannel = null;
+
+    // Random Tribal Nicknames
+    const TRIBAL_NAMES = [
+      "泰雅織布之友", "阿美海潮夥伴", "排灣琉璃小客", "布農合音好手", 
+      "魯凱百合之友", "卑南歡聚之友", "鄒族火塘夥伴", "賽夏臀鈴夥伴",
+      "達悟飛魚夥伴", "太魯閣編織者", "撒奇萊雅火神友", "卡那卡那富勇士",
+      "拉阿魯哇貝神友", "邵族白鹿夥伴", "噶瑪蘭海風夥伴", "賽德克彩虹友"
+    ];
+
+    let myNickname = localStorage.getItem('indigenous_poll_user') || 
+      `${TRIBAL_NAMES[Math.floor(Math.random() * TRIBAL_NAMES.length)]} #${Math.floor(Math.random() * 89 + 10)}`;
+    localStorage.setItem('indigenous_poll_user', myNickname);
+
+    // Initial Setup
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('user-nickname-display').textContent = myNickname;
+      setupBroadcastChannel();
+      setupWebRTCPeer();
+      renderCurrentQuestion();
+    });
+
+    window.changeNickname = function() {
+      const newName = prompt('請輸入您的自訂匿名代號：', myNickname);
+      if (newName && newName.trim()) {
+        myNickname = newName.trim();
+        localStorage.setItem('indigenous_poll_user', myNickname);
+        document.getElementById('user-nickname-display').textContent = myNickname;
+      }
+    };
+
+    // BroadcastChannel for local same-browser or local network tabs
+    function setupBroadcastChannel() {
+      try {
+        broadcastChannel = new BroadcastChannel('indigenous_poll_sync');
+        broadcastChannel.onmessage = (event) => {
+          handleIncomingMessage(event.data);
+        };
+      } catch (e) {
+        console.log('BroadcastChannel not supported', e);
+      }
+    }
+
+    // WebRTC PeerJS for cross-device mobile-to-laptop connection
+    function setupWebRTCPeer() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomPin = urlParams.get('room') || 'LANG-2026';
+
+      try {
+        peer = new Peer();
+
+        peer.on('open', (id) => {
+          updateConnectionStatus(true, '已連線');
+          // Connect to the presenter
+          conn = peer.connect(`host-${roomPin}`);
+          
+          conn.on('open', () => {
+            updateConnectionStatus(true, '已連線投影幕');
+            conn.send({ type: 'AUDIENCE_JOIN', nickname: myNickname });
+          });
+
+          conn.on('data', (data) => {
+            handleIncomingMessage(data);
+          });
+
+          conn.on('close', () => {
+            updateConnectionStatus(false, '連線已斷開');
+          });
+        });
+
+        peer.on('error', (err) => {
+          console.warn('Peer error (local fallback active):', err);
+          updateConnectionStatus(true, '區域連線模式');
+        });
+      } catch (e) {
+        console.warn('PeerJS init fallback', e);
+      }
+    }
+
+    function updateConnectionStatus(connected, text) {
+      const ind = document.getElementById('conn-indicator');
+      const label = document.getElementById('conn-status');
+      if (connected) {
+        ind.className = "w-2 h-2 rounded-full bg-emerald-400";
+        label.className = "text-[11px] text-emerald-300 font-medium";
+        label.textContent = text;
+      } else {
+        ind.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+        label.className = "text-[11px] text-amber-300 font-medium";
+        label.textContent = text;
+      }
+    }
+
+    // Handle messages from presenter
+    function handleIncomingMessage(msg) {
+      if (!msg) return;
+      if (msg.type === 'CHANGE_QUESTION') {
+        currentQIndex = msg.index;
+        isLocked = msg.isLocked || false;
+        myAnswer = null; // reset choice on new question
+        renderCurrentQuestion();
+      } else if (msg.type === 'SET_LOCK') {
+        isLocked = msg.isLocked;
+        renderCurrentQuestion();
+      }
+    }
+
+    // Render Question
+    function renderCurrentQuestion() {
+      const q = QUESTIONS_DATA[currentQIndex];
+      if (!q) return;
+
+      document.getElementById('q-index-display').textContent = q.id;
+      document.getElementById('q-category-display').textContent = q.category;
+      document.getElementById('q-title-display').textContent = q.title;
+      document.getElementById('q-desc-display').textContent = q.subtitle;
+
+      const activeCard = document.getElementById('card-active');
+      const lockedCard = document.getElementById('card-locked');
+      const feedbackAlert = document.getElementById('feedback-alert');
+
+      if (isLocked) {
+        activeCard.classList.add('hidden');
+        lockedCard.classList.remove('hidden');
+        return;
+      } else {
+        activeCard.classList.remove('hidden');
+        lockedCard.classList.add('hidden');
+      }
+
+      const listContainer = document.getElementById('options-list');
+      listContainer.innerHTML = '';
+
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        const isSelected = (myAnswer === opt.key);
+
+        btn.className = `w-full text-left p-3.5 rounded-xl border text-xs md:text-sm transition-all flex items-start gap-3 active:scale-[0.98] ${
+          isSelected 
+            ? 'bg-amber-600/25 border-amber-500 text-white font-semibold shadow-lg shadow-amber-500/10' 
+            : 'bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800 hover:border-slate-700'
+        }`;
+
+        btn.innerHTML = `
+          <span class="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center font-bold text-xs ${
+            isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+          }">
+            ${opt.key}
+          </span>
+          <span class="leading-relaxed flex-1">${opt.label}</span>
+          ${isSelected ? '<span class="text-amber-400 font-bold text-base">✓</span>' : ''}
+        `;
+
+        btn.onclick = () => submitVote(opt.key);
+        listContainer.appendChild(btn);
+      });
+
+      if (myAnswer) {
+        feedbackAlert.classList.remove('hidden');
+      } else {
+        feedbackAlert.classList.add('hidden');
+      }
+    }
+
+    // Submit Vote
+    function submitVote(optKey) {
+      myAnswer = optKey;
+      renderCurrentQuestion();
+
+      const payload = {
+        type: 'SUBMIT_VOTE',
+        questionId: QUESTIONS_DATA[currentQIndex].id,
+        questionIndex: currentQIndex,
+        optionKey: optKey,
+        nickname: myNickname,
+        timestamp: Date.now()
+      };
+
+      // Send via WebRTC
+      if (conn && conn.open) {
+        conn.send(payload);
+      }
+      // Send via BroadcastChannel (local sync)
+      if (broadcastChannel) {
+        broadcastChannel.postMessage(payload);
+      }
+    }
+  </script>
+</body>
+</html>
