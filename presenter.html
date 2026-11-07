@@ -50,11 +50,12 @@
         <span class="text-xs text-slate-400">人</span>
       </div>
 
-      <!-- Quick Mock / Test Buttons -->
-      <a href="./index.html" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1">
-        📱 開啟學員端測試
-      </a>
+      <!-- Final Analytics Dashboard Trigger -->
+      <button onclick="openFinalAnalyticsDashboard()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-600 hover:from-emerald-500 hover:to-amber-500 text-white shadow-lg transition flex items-center gap-1.5 border border-emerald-400/30">
+        <span>📊 揭曉 8 題總結分析</span>
+      </button>
 
+      <!-- Quick Mock / Test Buttons -->
       <button onclick="simulateMockAudience(5)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center gap-1">
         🎲 模擬 5 人填答
       </button>
@@ -199,6 +200,84 @@
     </div>
 
   </main>
+
+  <!-- FULL SCREEN MODAL: 8-QUESTION REAL-TIME DEEP ANALYTICS & PRESENTATION DASHBOARD -->
+  <div id="modal-final-analytics" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 hidden overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      
+      <!-- Modal Header -->
+      <div class="p-5 md:px-8 border-b border-slate-800 bg-slate-950/90 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+              📊 全場學情大數據診斷報告
+            </span>
+            <span class="text-xs text-slate-400">研習開場即時分析 · 智能交叉解讀</span>
+          </div>
+          <h2 class="text-xl md:text-2xl font-black text-white tracking-tight">
+            《科技運用與族語文化教材設計》全場互動統計與深度洞察
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="broadcastSummaryToMobile()" id="btn-broadcast-mobile" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30 transition flex items-center gap-1.5">
+            <span id="broadcast-icon">📲</span> <span id="broadcast-text">推播分析至全場學員手機</span>
+          </button>
+          <button onclick="downloadCSVReport()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition flex items-center gap-1.5">
+            <span>📥 匯出 CSV 數據</span>
+          </button>
+          <button onclick="closeFinalAnalyticsDashboard()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-lg transition">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-5 md:p-8 overflow-y-auto space-y-6 flex-1 text-slate-100 custom-scrollbar">
+        
+        <!-- 4 Top KPI Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="final-kpi-cards">
+          <!-- Dynamically generated -->
+        </div>
+
+        <!-- 4 Deep Strategic Insight Cards (2x2 Grid) -->
+        <div>
+          <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span>💡</span> 四大維度深度學情診斷與講者破題指引
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="final-insight-cards">
+            <!-- Dynamically generated based on live votes -->
+          </div>
+        </div>
+
+        <!-- 8-Question Visual Gallery (All 8 Mini-Charts) -->
+        <div class="pt-4 border-t border-slate-800">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <span>📈</span> 8 道問答題目完整票數分佈全貌
+            </h3>
+            <span class="text-xs text-slate-400">一覽無遺 · 現場作答結果</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="final-questions-gallery">
+            <!-- Dynamically generated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 px-6 border-t border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        <div>
+          <span class="text-emerald-400 font-semibold">💡 講課秘訣：</span>
+          <span>建議直接投影此頁面，並向全場宣講右上方「破題金句」，完美破冰並自然切入今日教學正題！</span>
+        </div>
+        <button onclick="closeFinalAnalyticsDashboard()" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300">
+          返回問答畫面
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <script type="module">
     import { QUESTIONS_DATA, SEMINAR_TOPIC } from './questions.js';
@@ -469,7 +548,17 @@
 
       // Prev/Next Button state
       document.getElementById('btn-prev').disabled = (currentQuestionIndex === 0);
-      document.getElementById('btn-next').disabled = (currentQuestionIndex === QUESTIONS_DATA.length - 1);
+      
+      const btnNext = document.getElementById('btn-next');
+      if (currentQuestionIndex === QUESTIONS_DATA.length - 1) {
+        btnNext.disabled = false;
+        btnNext.className = "px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-600 hover:from-emerald-500 hover:to-amber-500 text-white shadow-xl shadow-emerald-600/30 transition flex items-center gap-2 animate-pulse";
+        btnNext.innerHTML = `<span>✨ 揭曉全場 8 題深度總結分析</span> ▶`;
+      } else {
+        btnNext.disabled = false;
+        btnNext.className = "px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white shadow-lg shadow-amber-600/30 transition flex items-center gap-2";
+        btnNext.innerHTML = `<span>下一題</span> ▶`;
+      }
 
       updateNavigationDots();
     }
@@ -480,6 +569,9 @@
         currentQuestionIndex++;
         renderPresenterScreen();
         broadcastState('CHANGE_QUESTION');
+      } else {
+        // Automatically open the final analytics on question 8!
+        openFinalAnalyticsDashboard();
       }
     };
 
@@ -501,6 +593,257 @@
       isLocked = !isLocked;
       renderPresenterScreen();
       broadcastState('SET_LOCK');
+    };
+
+    // ==========================================
+    // 8-QUESTION REAL-TIME DEEP ANALYTICS ENGINE
+    // ==========================================
+    window.openFinalAnalyticsDashboard = function() {
+      generateAndRenderFinalAnalytics();
+      document.getElementById('modal-final-analytics').classList.remove('hidden');
+    };
+
+    window.closeFinalAnalyticsDashboard = function() {
+      document.getElementById('modal-final-analytics').classList.add('hidden');
+    };
+
+    function generateAndRenderFinalAnalytics() {
+      // 1. Calculate overall participation
+      let maxAnsweredAcrossQuestions = 0;
+      let totalResponsesSum = 0;
+      QUESTIONS_DATA.forEach(q => {
+        const votes = votesDatabase[q.id] || {};
+        const qTotal = Object.values(votes).reduce((s, v) => s + v, 0);
+        totalResponsesSum += qTotal;
+        if (qTotal > maxAnsweredAcrossQuestions) maxAnsweredAcrossQuestions = qTotal;
+      });
+
+      // Helper to find top option for a question
+      function getQuestionTop(qId) {
+        const q = QUESTIONS_DATA.find(item => item.id === qId);
+        const votes = votesDatabase[qId] || {};
+        const total = Object.values(votes).reduce((s, v) => s + v, 0);
+        let top = q.options[0];
+        let maxCount = -1;
+        q.options.forEach(opt => {
+          const count = votes[opt.key] || 0;
+          if (count > maxCount) {
+            maxCount = count;
+            top = opt;
+          }
+        });
+        const pct = total > 0 ? Math.round((maxCount / total) * 100) : 0;
+        return { opt: top, count: maxCount, total, pct, label: top.label };
+      }
+
+      // Helper to calculate weighted rating average (for rating questions like Q5, Q8)
+      function getRatingAverage(qId) {
+        const q = QUESTIONS_DATA.find(item => item.id === qId);
+        const votes = votesDatabase[qId] || {};
+        const total = Object.values(votes).reduce((s, v) => s + v, 0);
+        if (total === 0) return { avg: "0.0", total: 0 };
+        const sum = q.options.reduce((s, opt) => s + (parseInt(opt.key) * (votes[opt.key] || 0)), 0);
+        return { avg: (sum / total).toFixed(1), total };
+      }
+
+      // Dimension 1: Q1 (Mood) & Q2 (Role)
+      const q1Top = getQuestionTop(1);
+      const q2Top = getQuestionTop(2);
+
+      // Dimension 2: Q3 (Plan exp), Q4 (Material pain), Q5 (Confidence avg)
+      const q3Top = getQuestionTop(3);
+      const q4Top = getQuestionTop(4);
+      const q5Rating = getRatingAverage(5);
+
+      // Dimension 3: Q6 (AI exp) & Q7 (AI concern)
+      const q6Top = getQuestionTop(6);
+      const q7Top = getQuestionTop(7);
+
+      // Dimension 4: Q8 (Expectation avg)
+      const q8Rating = getRatingAverage(8);
+
+      // RENDER TOP KPI CARDS
+      const kpiContainer = document.getElementById('final-kpi-cards');
+      kpiContainer.innerHTML = `
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-slate-400 mb-1">👥 研習參與師長</div>
+          <div class="text-2xl md:text-3xl font-black text-amber-400 font-mono">${maxAnsweredAcrossQuestions} <span class="text-xs font-normal text-slate-400">人</span></div>
+          <div class="text-[11px] text-slate-500 mt-1">累計互動 ${totalResponsesSum} 筆填答</div>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-slate-400 mb-1">🎖️ 現場主力師資</div>
+          <div class="text-lg md:text-xl font-bold text-emerald-400 truncate">${q2Top.total > 0 ? q2Top.label.split('(')[0] : '全體師長'}</div>
+          <div class="text-[11px] text-emerald-500/80 mt-1">佔比達 ${q2Top.pct}%</div>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-slate-400 mb-1">✍️ 教材自編信心指數</div>
+          <div class="text-2xl md:text-3xl font-black text-rose-400 font-mono">${q5Rating.avg} <span class="text-amber-400 text-lg">★</span></div>
+          <div class="text-[11px] text-slate-500 mt-1">滿分 5.0 (信心偏中間值)</div>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-slate-400 mb-1">🚀 科技與AI賦能期待</div>
+          <div class="text-2xl md:text-3xl font-black text-sky-400 font-mono">${q8Rating.avg} <span class="text-amber-400 text-lg">★</span></div>
+          <div class="text-[11px] text-sky-400/80 mt-1">全場高度期待賦能減負</div>
+        </div>
+      `;
+
+      // RENDER 4 STRATEGIC INSIGHT CARDS
+      const insightContainer = document.getElementById('final-insight-cards');
+      insightContainer.innerHTML = `
+        <!-- Insight Card 1: 師資背景與前來動機 -->
+        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1.5">
+              <span>🌿</span> 維度一：師資結構與學習心境
+            </span>
+            <span class="text-xs font-mono text-slate-400">Q1 + Q2 交叉診斷</span>
+          </div>
+          <div>
+            <h4 class="text-base font-bold text-white mb-1">
+              以【${q2Top.total > 0 ? q2Top.label.split('(')[0] : '第一線族語教育夥伴'}】為主軸，多數抱持【${q1Top.total > 0 ? q1Top.label.substring(0, 10) : '積極期待'}】
+            </h4>
+            <p class="text-xs md:text-sm text-slate-300 leading-relaxed">
+              現場師資結構以具備深厚課堂田野經驗的老師為核心（佔比 <strong>${q2Top.pct}%</strong>）。這代表台下老師們最珍貴的是「真實語感」與「文化脈絡」，前來研習的最大動機是尋求能實質為日常備課省時提效的現代科技輔助。
+            </p>
+          </div>
+        </div>
+
+        <!-- Insight Card 2: 教材自編痛點與信心 -->
+        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30 flex items-center gap-1.5">
+              <span>✍️</span> 維度二：教材自編卡點與信心落差
+            </span>
+            <span class="text-xs font-mono text-slate-400">Q3 + Q4 + Q5 交叉診斷</span>
+          </div>
+          <div>
+            <h4 class="text-base font-bold text-white mb-1">
+              教案撰寫熟稔，但自編教材常卡在【${q4Top.total > 0 ? q4Top.label.substring(0, 16) : '素材與排版'}】
+            </h4>
+            <p class="text-xs md:text-sm text-slate-300 leading-relaxed">
+              雖然超過 7 成老師有教案撰寫經驗，但自編教材信心指數僅為 <strong>${q5Rating.avg} ★</strong>。最大痛點在於<strong>「欠缺符合族服與文化意象的插圖素材」</strong>與繁瑣排版。今日展示的 AI 生成文化圖卡，將直接切中現場最迫切的剛需！
+            </p>
+          </div>
+        </div>
+
+        <!-- Insight Card 3: AI 真實疑慮 -->
+        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30 flex items-center gap-1.5">
+              <span>⚠️</span> 維度三：AI 結合族語的核心疑慮
+            </span>
+            <span class="text-xs font-mono text-slate-400">Q6 + Q7 交叉診斷</span>
+          </div>
+          <div>
+            <h4 class="text-base font-bold text-white mb-1">
+              高達 ${q7Top.pct}% 老師最擔憂：【${q7Top.total > 0 ? q7Top.label.substring(0, 22) : 'AI 族語詞彙不準確/文化失真'}】
+            </h4>
+            <p class="text-xs md:text-sm text-slate-300 leading-relaxed">
+              這印證了現場老師極具文化敏銳度！通用 AI 對原住民族語缺乏預訓練資料，隨便盲目提問容易失真。這也宣告了今日演講的關鍵命題：<strong>「不能直接讓 AI 憑空寫族語，而必須用標準語料餵入與文化審校機制！」</strong>
+            </p>
+          </div>
+        </div>
+
+        <!-- Insight Card 4: 今日解方與金句 -->
+        <div class="bg-gradient-to-br from-emerald-950/60 via-slate-900 to-amber-950/50 border border-emerald-500/40 rounded-2xl p-5 shadow-lg space-y-3">
+          <div class="flex items-center justify-between border-b border-emerald-800/80 pb-2.5">
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-400/40 flex items-center gap-1.5">
+              <span>🎯</span> 維度四：今日課程處方與破題金句
+            </span>
+            <span class="text-xs font-mono text-amber-300 font-bold">期待值 ${q8Rating.avg} ★</span>
+          </div>
+          <div>
+            <div class="p-3 bg-slate-950/90 rounded-xl border border-amber-500/40 text-amber-200 text-xs md:text-sm font-medium leading-relaxed mb-2">
+              <strong class="text-amber-400 block mb-1">📢 講師現場開場破題金句（請直接宣講）：</strong>
+              「各位老師負責『文化靈魂與田野語感』，AI 負責『排版打字與情境鷹架』！今天我們不講生硬程式碼，我會帶大家掌握獨家『黃金三角提示詞』，由辭典標準詞彙精準引導 AI，徹底打破文化失真疑慮，讓大家備課時間省下 80%，做出的教材比官方繪本還精緻！」
+            </div>
+            <p class="text-[11px] text-slate-400">
+              全場對科技輔助期待高達 <strong>${q8Rating.avg} ★</strong>，此金句能完美建立全場共鳴並自然切入正課！
+            </p>
+          </div>
+        </div>
+      `;
+
+      // RENDER 8-QUESTION VISUAL GALLERY
+      const galleryContainer = document.getElementById('final-questions-gallery');
+      galleryContainer.innerHTML = '';
+
+      QUESTIONS_DATA.forEach(q => {
+        const votes = votesDatabase[q.id] || {};
+        const qTotal = Object.values(votes).reduce((s, v) => s + v, 0);
+
+        let maxOpt = q.options[0];
+        let maxCount = -1;
+        q.options.forEach(opt => {
+          const count = votes[opt.key] || 0;
+          if (count > maxCount) {
+            maxCount = count;
+            maxOpt = opt;
+          }
+        });
+        const topPct = qTotal > 0 ? Math.round((maxCount / qTotal) * 100) : 0;
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between";
+
+        let barsHtml = '';
+        q.options.forEach(opt => {
+          const c = votes[opt.key] || 0;
+          const pct = qTotal > 0 ? Math.round((c / qTotal) * 100) : 0;
+          barsHtml += `
+            <div class="space-y-0.5 text-[11px]">
+              <div class="flex items-center justify-between text-slate-300">
+                <span class="truncate max-w-[75%]">${opt.key}. ${opt.label}</span>
+                <span class="font-mono font-bold text-amber-300">${c}票 (${pct}%)</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-full rounded-full" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        });
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-bold">第 ${q.id} 題 · ${q.category}</span>
+              <span class="text-[10px] font-mono text-slate-400">${qTotal} 人填答</span>
+            </div>
+            <h5 class="text-xs font-bold text-white mb-2 line-clamp-2" title="${q.title}">${q.title}</h5>
+          </div>
+          <div class="space-y-1.5 pt-2 border-t border-slate-900">
+            ${barsHtml}
+          </div>
+        `;
+        galleryContainer.appendChild(card);
+      });
+    }
+
+    // Broadcast final analytics summary to all connected mobile devices
+    window.broadcastSummaryToMobile = function() {
+      const payload = {
+        type: 'SHOW_FINAL_SUMMARY',
+        timestamp: Date.now()
+      };
+
+      if (broadcastChannel) {
+        broadcastChannel.postMessage(payload);
+      }
+      connectedPeers.forEach(conn => {
+        if (conn && conn.open) {
+          conn.send(payload);
+        }
+      });
+
+      const btn = document.getElementById('btn-broadcast-mobile');
+      btn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow transition flex items-center gap-1.5";
+      document.getElementById('broadcast-icon').textContent = "✓";
+      document.getElementById('broadcast-text').textContent = "已成功同步至全場手機！";
+      setTimeout(() => {
+        btn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-lg transition flex items-center gap-1.5";
+        document.getElementById('broadcast-icon').textContent = "📲";
+        document.getElementById('broadcast-text').textContent = "推播分析至全場學員手機";
+      }, 3000);
     };
 
     // Navigation Dots

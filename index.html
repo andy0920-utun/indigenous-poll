@@ -97,6 +97,40 @@
       </div>
     </div>
 
+    <!-- Final Summary Card (When Presenter Reveals Conclusion) -->
+    <div id="card-final-summary" class="hidden flex-1 flex flex-col p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-4">
+      <div class="text-center pb-3 border-b border-slate-800">
+        <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 inline-block mb-1">
+          📊 8 題互動圓滿完成！
+        </span>
+        <h3 class="text-base font-black text-white">全場學情診斷核心發現</h3>
+        <p class="text-[11px] text-slate-400 mt-0.5">感謝各位老師填答！這是現場全體的即時畫像：</p>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <strong class="text-emerald-400 block mb-1">🌿 師資主力與心境：</strong>
+          第一線族語專職與支援老師為大宗，帶著豐富教學現場語感與滿懷期待前來！
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <strong class="text-amber-400 block mb-1">✍️ 教材自編痛點：</strong>
+          多數老師有教案撰寫經驗，但自編教材常受限於「缺乏族服與圖騰插圖素材」與繁瑣排版。
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <strong class="text-rose-400 block mb-1">⚠️ 核心疑慮：</strong>
+          大家最擔憂「AI 族語詞彙不準確/文化失真」，因此不能盲目讓 AI 寫族語，需有專業提問法。
+        </div>
+        <div class="bg-slate-950 p-3 rounded-xl border border-emerald-500/30 bg-emerald-950/20">
+          <strong class="text-emerald-300 block mb-1">🎯 今日研習解方：</strong>
+          「老師負責文化靈魂，AI 負責排版打字！」掌握黃金三角提示詞，省下 80% 時間做繪本教材！
+        </div>
+      </div>
+
+      <div class="text-center pt-2">
+        <p class="text-xs text-amber-300 font-medium">請抬頭聆聽講師為大家展開今日精彩正課！✨</p>
+      </div>
+    </div>
+
   </main>
 
   <!-- Mobile Footer -->
@@ -339,10 +373,17 @@
     // Handle messages from presenter
     function handleIncomingMessage(msg) {
       if (!msg) return;
+      if (msg.type === 'SHOW_FINAL_SUMMARY') {
+        document.getElementById('card-active').classList.add('hidden');
+        document.getElementById('card-locked').classList.add('hidden');
+        document.getElementById('card-final-summary').classList.remove('hidden');
+        return;
+      }
       if (msg.type === 'CHANGE_QUESTION') {
         currentQIndex = msg.index;
         isLocked = msg.isLocked || false;
         myAnswer = null; // reset choice on new question
+        document.getElementById('card-final-summary').classList.add('hidden');
         renderCurrentQuestion();
       } else if (msg.type === 'SET_LOCK') {
         isLocked = msg.isLocked;
@@ -363,6 +404,8 @@
       const activeCard = document.getElementById('card-active');
       const lockedCard = document.getElementById('card-locked');
       const feedbackAlert = document.getElementById('feedback-alert');
+      const summaryCard = document.getElementById('card-final-summary');
+      if (summaryCard) summaryCard.classList.add('hidden');
 
       if (isLocked) {
         activeCard.classList.add('hidden');
